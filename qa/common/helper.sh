@@ -73,7 +73,7 @@ function _extract_ceph_version {
     # return just the part before the first parentheses
     local full_version_string="$1"
     # shellcheck disable=SC2003
-    expr match "$full_version_string" '\(ceph version [^[:space:]]\+\)'
+    expr "$full_version_string" : '\(ceph version [^[:space:]]\+\)'
 }
 
 function _fsid {

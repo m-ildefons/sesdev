@@ -8,11 +8,14 @@
 #
 
 INTERACTIVE="--interactive"
-if [[ "$*" =~ "--non-interactive" ]] || [[ "$*" =~ "-f" ]] || [[ "$*" =~ "--force" ]]; then
+if [[ "$*" =~ "--non-interactive" ]] \
+  || [[ "$*" =~ "-f" ]] \
+  || [[ "$*" =~ "--force" ]]; then
     INTERACTIVE=""
 fi
 
-NETZ="$(sudo virsh net-list | egrep -v '\-\-\-|Persistent|vagrant-libvirt|^$' | cut -d' ' -f2)"
+NETZ="$(sudo virsh net-list | grep -v -E \
+  '\-\-\-|Persistent|vagrant-libvirt|^$' | cut -d' ' -f2)"
 if [ -z "$NETZ" ] ; then
     echo "No netz to nuke"
     exit 0
@@ -24,7 +27,7 @@ if [ "$INTERACTIVE" ] ; then
         echo "- $net"
     done
     echo -en "Are you sure? (y/N) "
-    read YES
+    read -r YES
     ynlc="${YES,,}"
     ynlcfc="${ynlc:0:1}"
     if [ -z "$YES" ] || [ "$ynlcfc" = "n" ] ; then
@@ -36,8 +39,8 @@ fi
 
 if [ "$YES" ] ; then
     for net in $NETZ ; do
-        sudo virsh net-destroy $net
-        sudo virsh net-undefine $net
+        sudo virsh net-destroy "$net"
+        sudo virsh net-undefine "$net"
     done
 else
     echo "Aborting!"

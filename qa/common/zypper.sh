@@ -22,7 +22,7 @@ function _zypper_ref_on_master {
 
 function _zypper_install_on_master {
     set -x
-    zypper --non-interactive install --no-recommends $@
+    zypper --non-interactive install --no-recommends "$@"
     set +x
 }
 

@@ -3,7 +3,7 @@
 function abort_missing_dep {
     local executable="$1"
     local provided_by="$2"
-    if type $executable > /dev/null 2>&1 ; then
+    if type "$executable" > /dev/null 2>&1 ; then
         true
     else
         >&2 echo "ERROR: $executable not available"
@@ -29,6 +29,7 @@ if [ -d ./venv ] ; then
 fi
 
 virtualenv --python=python3 venv
+# shellcheck disable=SC1091
 source venv/bin/activate
 pip install --editable .
 
