@@ -29,8 +29,10 @@ def sesdev_deps = [
     'libvirt-devel',
     'patterns-openSUSE-kvm_server',
     'patterns-server-kvm_tools',
+    'pyenv',
     'python3-devel',
     'python3-virtualenv',
+    'ShellCheck',
     'vagrant',
     'vagrant-libvirt',
 ]
@@ -168,16 +170,32 @@ pipeline {
             }
         }
 
-        stage('Install sesdev from source and create cluster') {
+        stage('Lint and install sesdev from source') {
             agent { label "${testbed_node}" }
             steps {
                 checkout scm
+                sh """
+                    cd qa
+                    ./shellcheck.sh"""
+                sh """
+                    find . -name "*.sh" | xargs shellcheck"""
+                sh """
+                    ./bootstrap.sh
+                    source venv/bin/activate
+                    sesdev --version"""
+                sh """
+                    pyenv install
+                    pyenv exec tox"""
+            }
+        }
+
+        stage('Install sesdev from source and create cluster') {
+            agent { label "${testbed_node}" }
+            steps {
                 timeout(time: 90, unit: 'MINUTES') {
                     ansiColor('xterm') {
                         sh """
-                            ./bootstrap.sh
                             source venv/bin/activate
-                            sesdev --help
                             ${sesdev_create_cmd(params.CEPH_SALT_GIT_REPO,
                                                 params.CEPH_SALT_GIT_BRANCH,
                                                 params.EXTRA_REPO_URLS)}"""
