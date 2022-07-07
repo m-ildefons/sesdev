@@ -1815,6 +1815,16 @@ deployment might not be completely destroyed.
             ssh_cmd.append("ceph mgr module enable {}".format(module))
             tools.run_sync(ssh_cmd)
 
+    def list_packages_from_repo(self, repo):
+        packages = {}
+        for node in self.nodes:
+            ssh_cmd = self._ssh_cmd(node)
+            ssh_cmd.append("zypper pa -N -R -i -r {}".format(repo))
+            plist = tools.run_sync(ssh_cmd)
+            packages[node] = plist
+
+        return packages
+
     # This is the "real" constructor
     @classmethod
     def create(cls, dep_id, log_handler, settings):
