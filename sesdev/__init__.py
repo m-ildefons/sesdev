@@ -1324,50 +1324,42 @@ def show(deployment_id, **kwargs):
 
 @cli.command()
 @click.argument('deployment_id')
-def maintenance_report(deployment_id):
+def report(deployment_id):
     """
     Compile the relevant information for the maintenance test report. This
     includes cluster-wide information, individual VM information and package
     installation statuses.
     """
+    def _indent(string, spaces=4):
+        return " " * spaces + string
+
     dep = Deployment.load(deployment_id)
     ver = Constant.VERSION_OFFICIAL[dep.settings.version]
-    cmd = "sesdev create {} --product --repo-priority".format(dep.settings.version)
+    cmd = f"sesdev create {dep.settings.version} --product --repo-priority"
     for rep in dep.settings.custom_repos:
         cmd += " --repo {}".format(rep['url'])
-    cmd += " {}".format(deployment_id)
+    cmd += f" {deployment_id}"
     dep.start(_print_log)
 
-    packages = {}
-    for repo in dep.settings.custom_repos:
-        pkgs = dep.list_packages_from_repo(repo['url'])
-        for node, pkg_lines in pkgs.items():
-            if node not in packages:
-                packages[node] = "- Repo: {}\n".format(repo['url'])
-            else:
-                packages[node] += "\n- Repo: {}\n".format(repo['url'])
-
-            for line in pkg_lines.splitlines():
-                if not line.startswith('Loading') and not line.startswith('Reading'):
-                    packages[node] += "    {}\n".format(line)
+    packages = dep.list_packages(repos=[r['url'] for r in dep.settings.custom_repos])
 
     click.echo("* sesdev was used for isntallation/smoke testing")
     click.echo("")
-    click.echo("* Command for creating a {} test cluster:".format(ver))
-    click.echo("    {}".format(cmd))
+    click.echo(f"* Command for creating a {ver} test cluster:")
+    click.echo(_indent(cmd))
     click.echo("")
-    click.echo("* {} cluster characteristics:".format(ver))
+    click.echo(f"* {ver} cluster characteristics:")
     for line in dep.configuration_report(show_individual_vms=True).splitlines():
-        click.echo("    {}".format(line))
+        click.echo(_indent(line))
     click.echo("")
     click.echo("* Packages installed from Maintenance repos:")
-    for node, pkg_lines in packages.items():
+    for node, pkgs in packages.items():
         click.echo("")
-        click.echo(" -- {}:".format(node))
-        for line in pkg_lines.splitlines():
-            click.echo("    {}".format(line))
+        click.echo(f" -- {node}:")
+        for pkg in pkgs:
+            click.echo(_indent(f"{pkg.name}  {pkg.version}  (from {pkg.repo})"))
     click.echo("")
-    click.echo("* {} cluster status:".format(ver))
+    click.echo(f"* {ver} cluster status:")
     click.echo("")
     dep.ssh('master', ['ceph', 'status'], interactive=False)
 
