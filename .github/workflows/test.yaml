@@ -1,0 +1,74 @@
+---
+name: Test Sesdev
+
+on:
+  push:
+    branches:
+      - '*'
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - '3.6'
+          - '3.8'
+        ceph-version:
+          - 'pacific'
+
+    name: |
+      Integration Test
+      (python-${{ matrix.python-version }} ceph-${{ matrix.ceph-version }})
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            ebtables \
+            libguestfs-tools \
+            libvirt-clients \
+            libvirt-daemon-system \
+            libvirt-dev \
+            qemu \
+            ruby-fog-libvirt \
+            vagrant
+          sudo vagrant plugin install vagrant-libvirt
+
+      - name: Setup Libvirt Enviroment
+        run: |
+          sudo mkdir -p /var/lib/libvirt/images
+          sudo virsh pool-create-as default dir --target=/var/lib/libvirt/images
+
+      - name: Install Sesdev
+        run: |
+          sudo pip install .
+          sudo mkdir -p /usr/share/sesdev/qa
+
+      - name: Run Smoke Test
+        run: |
+          sudo sesdev create \
+            ${{ matrix.ceph-version }} \
+            --single-node \
+            --non-interactive \
+            --num-disks 2 \
+            --disk-size 8 \
+
+          sudo sesdev status
