@@ -1815,7 +1815,27 @@ deployment might not be completely destroyed.
             ssh_cmd.append("ceph mgr module enable {}".format(module))
             tools.run_sync(ssh_cmd)
 
-    def list_packages(self, repos=None):
+    @staticmethod
+    def _parse_zypper_s11_packages(raw: str) -> List[ZypperPackage]:
+        """
+        Parse zypper terse packages outputs and returns a list of ZypperPackage objects,
+        where raw is output of "zypper -t -s 11 pa -N -R -i".
+        """
+        lines = raw.splitlines()
+        package_list = []
+
+        for line in lines:
+            cols = line.split()
+            if len(cols) < 5 or len(cols[0]) > 2 or cols[0] == 'S':
+                continue
+
+            package_list.append(ZypperPackage(name=cols[2], version=cols[3],
+                                              arch=cols[4], state=cols[0],
+                                              repo=cols[1]))
+
+        return package_list
+
+    def list_packages(self, repos: List[str] = None) -> dict[str, List[ZypperPackage]]:
         """
         Compile a list of packages installed on each host of the cluster.
         Return a dictionary by host to the list of packages installed on that
@@ -1823,21 +1843,10 @@ deployment might not be completely destroyed.
         Optionally takes a list of repos. When that list is non-empty, only
         packages installed from those repos will be included in the lists.
         """
-        def _to_package_list(raw):
-            lines = raw.splitlines()
-            package_list = []
-
-            for line in lines:
-                cols = line.split()
-                if len(cols) < 5 or len(cols[0]) > 2 or cols[0] == 'S':
-                    continue
-
-                package_list.append(ZypperPackage(name=cols[2], version=cols[3],
-                                                  arch=cols[4], state=cols[0],
-                                                  repo=cols[1]))
-
-            return package_list
-
+        """
+        Returns a dict of node names to list of all the packages installed on the node.
+        When 'repos' provided returns only the packages installed from the given list.
+        """
         zypper_cmd = "zypper -t -s 11 pa -N -R -i"
 
         if repos:
@@ -1850,7 +1859,7 @@ deployment might not be completely destroyed.
             ssh_cmd.append(zypper_cmd)
             raw_package_list = tools.run_sync(ssh_cmd)
 
-            packages[node] = _to_package_list(raw_package_list)
+            packages[node] = self._parse_zypper_s11_packages(raw_package_list)
 
         return packages
 
