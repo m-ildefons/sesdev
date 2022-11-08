@@ -134,12 +134,12 @@ class Constant():
             '{}-update-sp1':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP1_Update',
-            '{}-update-product-storage':
-                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_SLE-15-SP1_Update_Products_SES6_Update',
             '{}-storage':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_Updates_Storage_6_x86_64'
+                'SUSE_Updates_Storage_6_x86_64',
+            '{}-update-product-storage':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_SLE-15-SP1_Update_Products_SES6_Update'
         },
         'ses7': {
             '{}-update':
@@ -148,12 +148,12 @@ class Constant():
             '{}-update-sp2':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP2_Update',
-            '{}-update-product-storage':
-                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_SLE-15-SP2_Update_Products_SES7_Update',
             '{}-storage':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_Updates_Storage_7_x86_64'
+                'SUSE_Updates_Storage_7_x86_64',
+            '{}-update-product-storage':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_SLE-15-SP2_Update_Products_SES7_Update'
         },
         'ses7p': {
             '{}-update':
@@ -162,12 +162,12 @@ class Constant():
             '{}-update-sp3':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP3_Update',
-            '{}-update-product-storage':
-                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_SLE-15-SP3_Update_Products_SES7.1_Update',
             '{}-storage':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_Updates_Storage_7.1_x86_64'
+                'SUSE_Updates_Storage_7.1_x86_64',
+            '{}-update-product-storage':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_SLE-15-SP3_Update_Products_SES7.1_Update'
         }
     }
 
@@ -414,7 +414,7 @@ class Constant():
         "ses7": [["admin", "master", "client", "prometheus", "grafana", "alertmanager",
                   "node-exporter"],
                  ["bootstrap", "storage", "mon", "mgr", "rgw", "igw", "node-exporter"],
-                 ["storage", "mon", "mgr", "mds", "igw", "node-exporter"],
+                 ["storage", "mon", "mgr", "mds", "igw", "smb", "node-exporter"],
                  ["storage", "mon", "mgr", "mds", "rgw", "nfs", "node-exporter"]]
     }
 
@@ -444,6 +444,8 @@ class Constant():
         "mgr",
         "mon",
         "nfs",
+        "smb",
+        "smb-client",
         "node-exporter",
         "prometheus",
         "rgw",

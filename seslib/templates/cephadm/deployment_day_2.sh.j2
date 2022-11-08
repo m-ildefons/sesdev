@@ -156,6 +156,8 @@ NFS_NODES_COMMA_SEPARATED_LIST="${NFS_NODES_COMMA_SEPARATED_LIST%,*}"
 {% set fs_meta_pool = fs_pool_prefix + fs_name + ".meta" %}
 {% set fs_data_pool = fs_pool_prefix + fs_name + ".data" %}
 
+ceph fs flag set enable_multiple true
+
 ceph osd pool create {{ fs_meta_pool }}
 ceph osd pool create {{ fs_data_pool }}
 
@@ -398,3 +400,9 @@ ceph orch apply -i {{ service_spec_gw }}
 {% endif %}{# storage_nodes > 0 #}
 
 ceph config set mon auth_allow_insecure_global_id_reclaim false || true
+
+{% if mds_nodes > 0 %}
+{% if smb_nodes > 0 %}
+{% include "cephadm/deployment_samba.sh.j2" %}
+{% endif %}
+{% endif %}

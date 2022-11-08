@@ -637,6 +637,8 @@ class Deployment():  # use Deployment.create() to create a Deployment object
             'node_exporter_node_list': ','.join(self.nodes_with_role["node-exporter"]),
             'nfs_nodes': self.node_counts["nfs"],
             'nfs_node_list': ','.join(self.nodes_with_role["nfs"]),
+            'smb_nodes': self.node_counts["smb"],
+            'smb_node_list': ','.join(self.nodes_with_role["smb"]),
             'igw_nodes': self.node_counts["igw"],
             'igw_node_list': ','.join(self.nodes_with_role["igw"]),
             'mds_nodes': self.node_counts["mds"],
@@ -1150,6 +1152,8 @@ deployment might not be completely destroyed.
                     raise NoStorageRolesCephadm('nfs')
                 if self.node_counts['mds'] > 0:
                     raise NoStorageRolesCephadm('mds')
+                if self.node_counts['smb'] > 0:
+                    raise NoStorageRolesCephadm('smb')
         # ganesha role only allowed pre-octopus
         if self.settings.version in ['octopus', 'ses7', 'pacific']:
             if self.node_counts["ganesha"] > 0:
@@ -1849,6 +1853,36 @@ deployment might not be completely destroyed.
 
         return repos
 
+    def get_samba_status(self):
+        """
+        Return a dictionary of samba server and client node statuses.
+        """
+        smb_status = {}
+        smb_status['server'] = {}
+        smb_status['client'] = {}
+
+        smb_server = self._find_service_node('smb')
+        if smb_server:
+            ssh_cmd = self._ssh_cmd(smb_server)
+            ssh_cmd.append("systemctl status smb.service")
+            raw_ssh_cmd = tools.run_sync(ssh_cmd)
+
+            smb_status['server']['ok'] = ("active (running)" in raw_ssh_cmd)
+        else:
+            smb_status['server']['ok'] = "n/a"
+
+        smb_client = self._find_service_node('smb-client')
+        if smb_client:
+            ssh_cmd = self._ssh_cmd(smb_client)
+            ssh_cmd.append("mount")
+            raw_ssh_cmd = tools.run_sync(ssh_cmd)
+
+            smb_status['client']['ok'] = ("cifs" in raw_ssh_cmd)
+        else:
+            smb_status['client']['ok'] = "n/a"
+
+        return smb_status
+
     def get_fips_status(self):
         """
         Return a dictionary of nodes and their FIPS enablement status.
@@ -1860,7 +1894,6 @@ deployment might not be completely destroyed.
         fips_pkg_name = "patterns-base-fips"
         if self.settings.version in ['ses6', 'nautilus']:
             fips_pkg_name = "patterns-server-enterprise-fips"
-
 
         zypp_cmd = f"zypper info {fips_pkg_name} | grep \"Installed  \""
         fips_cmd = "cat /proc/sys/crypto/fips_enabled"

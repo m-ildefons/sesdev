@@ -1,0 +1,111 @@
+{# Samba Server Deployment for SES Cluster
+ #
+ # Depends on:
+ #   - smb_nodes > 0
+ #   - mds_nodes > 0
+ #}
+
+{% set smb_fs_name = "smb_fs" %}
+{% set smb_fs_pool_prefix = "cephfs." %}
+{% set smb_fs_meta_pool = smb_fs_pool_prefix + smb_fs_name + ".meta" %}
+{% set smb_fs_data_pool = smb_fs_pool_prefix + smb_fs_name + ".data" %}
+
+{% set smb_export_kernel = "ceph-samba-kernel" %}
+{% set smb_export_vfs = "ceph-samba-vfs" %}
+
+{% set smb_pass = "foobar" %}
+
+{% for node in nodes %}
+{% if node.has_role('smb') %}
+
+ssh {{ node.name }} zypper --non-interactive install samba samba-ceph
+
+ceph auth get-or-create client.samba.gw \
+  mon 'allow r' \
+  osd 'allow *' \
+  mds 'allow *' \
+  -o ceph.client.samba.gw.keyring
+
+scp ceph.client.samba.gw.keyring {{ node.name }}:/etc/ceph/
+
+ceph osd pool create {{ smb_fs_meta_pool }}
+ceph osd pool create {{ smb_fs_data_pool }}
+ceph fs new {{ smb_fs_name }} {{ smb_fs_meta_pool }} {{ smb_fs_data_pool }}
+
+while ! ceph fs status {{ smb_fs_name }} --format json | jq .mdsmap[0].state | grep -q active ; do
+  sleep 5
+  echo "$(hostname) waiting for ceph fs {{ smb_fs_name }} to become active..."
+done
+
+ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_kernel }}
+ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_vfs }}
+
+CEPH_KEY="$(cat /etc/ceph/ceph.client.admin.keyring | grep key | awk '{print $3}')"
+ssh {{ node.name }} mount -t ceph \
+  {{ mon_node_list }}:/ \
+  /mnt/{{ smb_export_kernel }} \
+  -o name=admin,secret=$CEPH_KEY
+
+cat <<EOF > smb.conf
+[global]
+  netbios name = SAMBA-GW
+  clustering = no
+  idmap config * : backend = tdb2
+  passdb backend = tdbsam
+  # disable print server
+  load printers = no
+  smbd: backgroundqueue = no
+  # allow passwordless mounts
+  null passwords = yes
+
+[{{ smb_export_kernel }}]
+  path = /mnt/{{ smb_export_kernel }}
+  read only = no
+  oplocks = no
+  kernel share modes = no
+
+[{{ smb_export_vfs }}]
+  path = /
+  vfs objects = ceph
+  ceph: config_file = /etc/ceph/ceph.conf
+  ceph: user_id = admin
+  read only = no
+  oplocks = no
+  kernel share modes = no
+EOF
+
+scp smb.conf {{ node.name }}:/etc/samba/smb.conf
+
+ssh {{ node.name }} systemctl restart smb.service
+ssh {{ node.name }} systemctl status smb.service
+
+echo {{ smb_pass }} > smbpass
+echo {{ smb_pass }} >> smbpass
+ssh {{ node.name }} smbpasswd -a -s root < smbpass
+ssh {{ node.name }} smbpasswd -e -s root < smbpass
+
+{% endif %} {# node.has_role('smb') #}
+
+{% if node.has_role('smb-client') %}
+
+ssh {{ node.name }} zypper --non-interactive install samba-client
+
+{% for srv in nodes %}
+{% if srv.has_role('smb') %}
+ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_kernel }}-{{ srv.name }}
+ssh {{ node.name }} mount -t cifs \
+  -o user=root,password={{ smb_pass }} \
+  //{{ srv.name }}/{{ smb_export_kernel }} \
+  /mnt/{{ smb_export_kernel }}-{{ srv.name }}
+
+# VFS mount disabled for now because it fails with error -9
+# ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_vfs }}-{{ srv.name }}
+# ssh {{ node.name }} mount -t cifs \
+#   -o user=root,password={{ smb_pass }} \
+#   //{{ srv.name }}/{{ smb_export_vfs }} \
+#   /mnt/{{ smb_export_vfs }}-{{ srv.name }}
+{% endif %}
+{% endfor %}
+
+{% endif %} {# node.has_role('smb-client') #}
+{% endfor %}

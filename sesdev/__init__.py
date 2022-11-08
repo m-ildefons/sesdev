@@ -1399,6 +1399,14 @@ def report(deployment_id):
         click.echo(_indent(f"Version: {nodestatus['version']}", 8))
         click.echo("")
 
+    samba_status = dep.get_samba_status()
+    click.echo("* Samba Status:")
+    click.echo(_indent("- Server:"))
+    click.echo(_indent(f"ok: {samba_status['server']['ok']}", 8))
+    click.echo(_indent("- Client:"))
+    click.echo(_indent(f"ok: {samba_status['client']['ok']}", 8))
+    click.echo("")
+
     click.echo(f"* {ver} cluster status:")
     click.echo("")
     dep.ssh('master', ['ceph', 'status'], interactive=False)
