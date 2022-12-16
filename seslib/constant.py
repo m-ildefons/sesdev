@@ -128,15 +128,51 @@ class Constant():
     # generate the repo urls used during maintenance update testing
     MAINTENANCE_REPO_TEMPLATES = {
         'ses6': {
+            '{}-basesystem':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_SLE-Module-Basesystem_15-SP1_x86_64',
+            '{}-server-applications':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_SLE-Module-Server-Applications_15-SP1_x86_64/',
+            '{}-storage':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_Storage_6_x86_64',
+        },
+        'ses7': {
+            '{}-basesystem':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_SLE-Module-Basesystem_15-SP2_x86_64',
+            '{}-server-applications':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_SLE-Module-Server-Applications_15-SP2_x86_64/',
+            '{}-storage':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_Storage_7_x86_64',
+        },
+        'ses7p': {
+            '{}-basesystem':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_SLE-Module-Basesystem_15-SP3_x86_64',
+            '{}-server-applications':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_SLE-Module-Server-Applications_15-SP3_x86_64/',
+            '{}-storage':
+                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
+                'SUSE_Updates_Storage_7.1_x86_64',
+        }
+    }
+
+    # A dict of string templates for codestream urls. There are currently
+    # unused, but we may want to test maintenance updates against them at some
+    # point.
+    MAINTENANCE_CODESTREAM_TEMPLATES = {
+        'ses6': {
             '{}-update':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15_Update',
             '{}-update-sp1':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP1_Update',
-            '{}-storage':
-                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_Updates_Storage_6_x86_64',
             '{}-update-product-storage':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP1_Update_Products_SES6_Update'
@@ -148,9 +184,6 @@ class Constant():
             '{}-update-sp2':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP2_Update',
-            '{}-storage':
-                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_Updates_Storage_7_x86_64',
             '{}-update-product-storage':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP2_Update_Products_SES7_Update'
@@ -162,9 +195,6 @@ class Constant():
             '{}-update-sp3':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP3_Update',
-            '{}-storage':
-                'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
-                'SUSE_Updates_Storage_7.1_x86_64',
             '{}-update-product-storage':
                 'http://download.suse.de/ibs/SUSE:/Maintenance:/{}/'
                 'SUSE_SLE-15-SP3_Update_Products_SES7.1_Update'
