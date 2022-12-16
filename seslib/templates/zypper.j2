@@ -33,8 +33,14 @@ zypper --non-interactive removerepo repo-source-non-oss || true
 {% endif %}{# os.startswith('leap') or os == "tumbleweed" #}
 
 # base repos
+# always add storage repos with elevated priority to avoid conflicts with ceph
+# packages delivered in sle base repos
 {% for os_repo_name, os_repo_url in os_base_repos %}
-zypper addrepo --refresh {{ os_repo_url }} {{ os_repo_name }}
+zypper addrepo
+{%- if os_repo_name.startswith('storage') %}
+  --priority=50
+{%- endif %}
+  --refresh {{ os_repo_url }} {{ os_repo_name }}
 {% endfor %}
 
 # Ignore Podman 2.2.1 due to bug: https://github.com/SUSE/sesdev/issues/633
@@ -113,6 +119,8 @@ zypper addrepo --no-gpgcheck --refresh
 # this is very useful e.g. for maintenance update testing for zypper salt etc.
 # because these packages don't get reinstalled before trying to install ceph
 # with them
+# Exception: kernel updates. These require reboots and must be handled
+# differently
 {% if node.custom_repos|length > 0 %}
 if zypper -t -s 11 pa
 {%- for _repo in node.custom_repos %}
@@ -126,7 +134,7 @@ if zypper -t -s 11 pa
 {%- endfor %}
   | grep -e "^v" | awk '{print $3}' | sort -u)
 
-  zypper -n update $packages
+  echo "$packages" | grep -q kernel || zypper -n update $packages
 fi
 {% endif %}
 
