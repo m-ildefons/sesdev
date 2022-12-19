@@ -13,7 +13,10 @@
 {% set smb_export_kernel = "ceph-samba-kernel" %}
 {% set smb_export_vfs = "ceph-samba-vfs" %}
 
+{% set smb_user = "root" %}
+{% set smb_group = "root" %}
 {% set smb_pass = "foobar" %}
+{% set smb_workgroup = "SAMBA-GW" %}
 
 {% for node in nodes %}
 {% if node.has_role('smb') %}
@@ -48,7 +51,7 @@ ssh {{ node.name }} mount -t ceph \
 
 cat <<EOF > smb.conf
 [global]
-  netbios name = SAMBA-GW
+  netbios name = {{ smb_workgroup }}
   clustering = no
   idmap config * : backend = tdb2
   passdb backend = tdbsam
@@ -76,13 +79,14 @@ EOF
 
 scp smb.conf {{ node.name }}:/etc/samba/smb.conf
 
+ssh {{ node.name }} systemctl enable  smb.service
 ssh {{ node.name }} systemctl restart smb.service
-ssh {{ node.name }} systemctl status smb.service
+ssh {{ node.name }} systemctl status  smb.service
 
 echo {{ smb_pass }} > smbpass
 echo {{ smb_pass }} >> smbpass
-ssh {{ node.name }} smbpasswd -a -s root < smbpass
-ssh {{ node.name }} smbpasswd -e -s root < smbpass
+ssh {{ node.name }} smbpasswd -a -s {{ smb_user }} < smbpass
+ssh {{ node.name }} smbpasswd -e -s {{ smb_user }} < smbpass
 
 {% endif %} {# node.has_role('smb') #}
 
@@ -92,11 +96,27 @@ ssh {{ node.name }} zypper --non-interactive install samba-client
 
 {% for srv in nodes %}
 {% if srv.has_role('smb') %}
+
+{% set smb_kernel_mountpoint = "/mnt/" + smb_export_kernel + "-" + srv.name %}
+{% set smb_kernel_export_addr = "//" + srv.name + "/" + smb_export_kernel %}
+{% set smb_credentials_file = "/root/.smbcredentials" %}
+{% set smb_options = "rw,credentials=" + smb_credentials_file + ",iocharset=utf8,uid=" + smb_user + ",gid=" + smb_group %}
+
+# Configure credentials
+echo "username={{ smb_user }}"    >> smbcredentials
+echo "password={{ smb_pass }}"    >> smbcredentials
+echo "domain={{ smb_workgroup }}" >> smbcredentials
+scp smbcredentials {{ node.name }}:{{ smb_credentials_file }}
+ssh {{ node.name }} chmod 0600 {{ smb_credentials_file }}
+
+# Configure fstab
+scp {{ node.name }}:/etc/fstab client.fstab
+echo "{{ smb_kernel_export_addr }} {{ smb_kernel_mountpoint }} cifs {{ smb_options }} 0 0" >> client.fstab
+scp client.fstab {{ node.name }}:/etc/fstab
+
+# Create mountpoint and mount smb share
 ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_kernel }}-{{ srv.name }}
-ssh {{ node.name }} mount -t cifs \
-  -o user=root,password={{ smb_pass }} \
-  //{{ srv.name }}/{{ smb_export_kernel }} \
-  /mnt/{{ smb_export_kernel }}-{{ srv.name }}
+ssh {{ node.name }} mount -a
 
 # VFS mount disabled for now because it fails with error -9
 # ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_vfs }}-{{ srv.name }}
