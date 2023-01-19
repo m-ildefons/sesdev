@@ -174,4 +174,8 @@ sleep 5
 
 ceph config set mon auth_allow_insecure_global_id_reclaim false || true
 
+{% if smb_nodes > 0 and mds_nodes > 0 %}
+{% include "cephadm/deployment_samba.sh.j2" %}
+{% endif %}  {# smb_nodes > 0 and mds_nodes > 0 #}
+
 echo "deployment complete!"

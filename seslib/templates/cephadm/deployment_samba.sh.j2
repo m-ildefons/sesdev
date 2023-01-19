@@ -31,14 +31,27 @@ ceph auth get-or-create client.samba.gw \
 
 scp ceph.client.samba.gw.keyring {{ node.name }}:/etc/ceph/
 
+{% if version == "ses6" %}
+ceph fs flag set enable_multiple true
+ceph osd pool create {{ smb_fs_meta_pool }} 32 32 replicated replicated_rule 128
+ceph osd pool create {{ smb_fs_data_pool }} 32 32 replicated replicated_rule 128
+{% else %}
 ceph osd pool create {{ smb_fs_meta_pool }}
 ceph osd pool create {{ smb_fs_data_pool }}
+{% endif %}  {# version is ses6 #}
 ceph fs new {{ smb_fs_name }} {{ smb_fs_meta_pool }} {{ smb_fs_data_pool }}
 
+{% if version == "ses6" %}
+while ! ceph fs status {{ smb_fs_name }} | grep -i active ; do
+  sleep 5
+  echo "$(hostname) waiting for ceph fs {{ smb_fs_name }} to become active..."
+done
+{% else %}
 while ! ceph fs status {{ smb_fs_name }} --format json | jq .mdsmap[0].state | grep -q active ; do
   sleep 5
   echo "$(hostname) waiting for ceph fs {{ smb_fs_name }} to become active..."
 done
+{% endif %}  {# version == "ses6" #}
 
 ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_kernel }}
 ssh {{ node.name }} mkdir -p /mnt/{{ smb_export_vfs }}
