@@ -341,6 +341,7 @@ class Deployment():  # use Deployment.create() to create a Deployment object
     def __generate_nodes(self):
         node_id = 0
         worker_id = 0
+        master_id = 0
         loadbl_id = 0
         nfs_id = 0
         Log.debug("__generate_nodes: about to process cluster roles: {}"
@@ -371,6 +372,17 @@ class Deployment():  # use Deployment.create() to create a Deployment object
                     node_id += 1
                     name = 'node{}'.format(node_id)
                     fqdn = 'node{}.{}'.format(node_id, self.domain)
+            elif self.settings.version == 'k3s':
+                if 'master' in node_roles:
+                    master_id += 1
+                    node_id += 1
+                    name = 'master{}'.format(master_id)
+                    fqdn = 'master{}.{}'.format(master_id, self.domain)
+                elif 'worker' in node_roles:
+                    worker_id += 1
+                    node_id += 1
+                    name = 'worker{}'.format(worker_id)
+                    fqdn = 'worker{}.{}'.format(worker_id, self.domain)
             else:
                 if 'master' in node_roles or 'suma' in node_roles or 'makecheck' in node_roles:
                     name = 'master'
@@ -390,7 +402,7 @@ class Deployment():  # use Deployment.create() to create a Deployment object
                         '=> "{}"\n').format(network)
             else:
                 if 'master' in node_roles or 'suma' in node_roles:
-                    public_address = '{}{}'.format(self.settings.public_network, 200)
+                    public_address = '{}{}'.format(self.settings.public_network, 200 + node_id)
                 else:
                     public_address = '{}{}'.format(self.settings.public_network, 200 + node_id)
                 networks = ('node.vm.network :private_network, autostart: true, ip:'
@@ -1127,7 +1139,7 @@ deployment might not be completely destroyed.
             else:
                 raise BadMakeCheckRolesNodes()
         else:
-            if self.node_counts['master'] != 1:
+            if self.settings.version != 'k3s' and self.node_counts['master'] != 1:
                 raise UniqueRoleViolation('master', self.node_counts['master'])
         # octopus and beyond require one, and only one, bootstrap role
         # and bootstrap must have admin role as well (unless this is

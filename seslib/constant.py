@@ -398,7 +398,13 @@ class Constant():
 
     ROLES_DEFAULT = {
         "caasp4": [["master"], ["worker"], ["worker"], ["loadbalancer"]],
-        "k3s": [["master"], ["worker"], ["worker"], ["worker"], ["worker"]],
+        "k3s": [
+            ["master"],
+            ["master"],
+            ["master"],
+            ["worker"],
+            ["worker"],
+        ],
         "makecheck": [["makecheck"]],
         "nautilus": [["master", "client", "prometheus", "grafana"],
                      ["storage", "mon", "mgr", "rgw", "igw"],
